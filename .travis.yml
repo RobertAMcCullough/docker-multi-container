@@ -1,0 +1,26 @@
+language: generic
+sudo: required
+services:
+  - docker
+
+# need the dev dockerfile since that has access to test suite
+# can add tests for other containers here too
+before_install:
+  - docker build -t robertamccullough/react-test-image -f ./client/Dockerfile.dev ./client
+
+#CI env variable tells the test suite not to watch and wait for more input
+script:
+  - docker run -e CI=true robertamccullough/react_test_image npm run test 
+
+#build images to push to docker hub for EB to pull down later. redis and postgres are already there.
+after-success:
+  - docker build -t robertamccullough/multi-client ./client
+  - docker build -t robertamccullough/multi-server ./server
+  - docker build -t robertamccullough/multi-worker ./worker
+  - docker build -t robertamccullough/multi-nginx ./nginx
+  #env variables stored on travis
+  - echo "$DOCKER_PW" | docker login -u $"DOCKER_ID" --password-stdin
+  - docker push robertamccullough/multi-client
+  - docker push robertamccullough/multi-server
+  - docker push robertamccullough/multi-worker
+  - docker push robertamccullough/multi-nginx
