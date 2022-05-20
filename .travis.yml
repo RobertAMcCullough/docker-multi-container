@@ -19,7 +19,7 @@ after-success:
   - docker build -t robertamccullough/multi-worker ./worker
   - docker build -t robertamccullough/multi-nginx ./nginx
   #env variables stored on travis
-  - echo "$DOCKER_PW" | docker login -u $"DOCKER_ID" --password-stdin
+  - echo "$DOCKER_PW" | docker login -u "$DOCKER_ID" --password-stdin
   - docker push robertamccullough/multi-client
   - docker push robertamccullough/multi-server
   - docker push robertamccullough/multi-worker
