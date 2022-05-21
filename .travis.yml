@@ -1,0 +1,39 @@
+language: generic
+sudo: required
+services:
+  - docker
+
+# need the dev dockerfile since that has access to test suite
+# can add tests for other containers here too
+before_install:
+  - docker build -t robertamccullough/react-test-image -f ./client/Dockerfile.dev ./client
+
+#CI env variable tells the test suite not to watch and wait for more input
+script:
+  - docker run -e CI=true robertamccullough/react-test-image npm run test 
+
+#build images to push to docker hub for EB to pull down later. redis and postgres will be run on aws via rds/elasticache.
+after-success:
+  - docker build -t robertamccullough/multi-client ./client
+  - docker build -t robertamccullough/multi-server ./server
+  - docker build -t robertamccullough/multi-worker ./worker
+  - docker build -t robertamccullough/multi-nginx ./nginx
+  #env variables stored on travis
+  - echo "$DOCKER_PW" | docker login -u "$DOCKER_ID" --password-stdin
+  - docker push robertamccullough/multi-client
+  - docker push robertamccullough/multi-server
+  - docker push robertamccullough/multi-worker
+  - docker push robertamccullough/multi-nginx
+
+deploy:
+  provider: elasticbeanstalk
+  region: "us-east-1"
+  app: "Multidocker"
+  env: "Multidocker-env"
+  bucketname: "elasticbeanstalk-us-east-1-674915818787"
+  path: "Multidocker"
+  on:
+    branch: master
+  access_key_id: $AWS_ACCESS_KEY
+  secret_access_key: $AWS_SECRET_KEY
+  
